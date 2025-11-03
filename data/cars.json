@@ -1,0 +1,26 @@
+[
+  {
+    "make": "Toyota",
+    "model": "Camry",
+    "year": "2022",
+    "color": "White",
+    "plate": "123ABC01",
+    "vin": "JT1234567890XYZ12"
+  },
+  {
+    "make": "Kia",
+    "model": "Sportage",
+    "year": "2021",
+    "color": "Brown",
+    "plate": "456XYZ02",
+    "vin": "KIA9876543210ABC34"
+  },
+  {
+    "make": "Hyundai",
+    "model": "Tucson",
+    "year": "2020",
+    "color": "Gray",
+    "plate": "789QWE03",
+    "vin": "HYU5432167890LMN56"
+  }
+]
