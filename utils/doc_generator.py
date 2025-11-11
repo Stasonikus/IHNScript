@@ -4,9 +4,11 @@ from docx import Document
 from datetime import datetime
 
 # === Пути ===
-TEMPLATE_DIR = r"E:\training\Python\IHNscript\templates"
-OUTPUT_DIR = r"E:\training\Python\IHNscript\output"
-CARS_FILE = r"E:\training\Python\IHNscript\data\cars.json"
+BASE_DIR = r"E:\training\Python\IHNscript"
+TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+CARS_FILE = os.path.join(BASE_DIR, "data", "cars.json")
+COUNTER_FILE = os.path.join(BASE_DIR, "data", "contract_counter.json")
 
 # === Создание выходной папки ===
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -38,6 +40,22 @@ def replace_text_in_doc(doc, replacements):
                             p = paragraph.runs[i]._element
                             p.getparent().remove(p)
                         paragraph.add_run(new_text)
+
+# === Функция загрузки счётчика контрактов ===
+def load_contract_number():
+    if not os.path.exists(COUNTER_FILE):
+        return 1
+    try:
+        with open(COUNTER_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("last_number", 0) + 1
+    except:
+        return 1
+
+# === Сохранение нового номера контракта ===
+def save_contract_number(number):
+    with open(COUNTER_FILE, "w", encoding="utf-8") as f:
+        json.dump({"last_number": number}, f, ensure_ascii=False, indent=4)
 
 # === Генерация документов ===
 def generate_docs(data_dict, client_name):
@@ -80,21 +98,14 @@ def calculate_days(start_date, end_date):
     fmt = "%d.%m.%Y"
     d1 = datetime.strptime(start_date, fmt)
     d2 = datetime.strptime(end_date, fmt)
-    return (d2 - d1).days + 1  # включая последний день
+    return (d2 - d1).days + 1
 
 # === Выбор покрытия дорог ===
 def choose_road_types():
-    road_options = [
-        "Paved",
-        "Gravel",
-        "Dirt Tracks",
-        "Off-Road",
-        "Asphalt"
-    ]
+    road_options = ["Paved", "Gravel", "Dirt Tracks", "Off-Road", "Asphalt"]
     print("\n🛣️ Доступные типы дорог:")
     for i, r in enumerate(road_options, 1):
         print(f"{i}. {r}")
-
     print("\nМожно выбрать несколько (через запятую, например: 1,3,5)")
     choice = input("Выберите типы дорог: ").strip()
     selected = []
@@ -125,8 +136,12 @@ if __name__ == "__main__":
     address = input("Адрес проживания: ")
     phone = input("Телефон: ")
     email = input("Email: ")
-    passport = input("Паспорт: ")
-    license_num = input("Вод. удостоверение: ")
+
+    passport_number = input("Номер паспорта: ")
+    passport_issue_date = input("Дата выдачи паспорта (ДД.ММ.ГГГГ): ")
+    passport_issue_by = input("Кем выдан паспорт: ")
+    license_num = input("Номер водительского удостоверения: ")
+
     start_date = input("Дата начала аренды (ДД.ММ.ГГГГ): ")
     end_date = input("Дата конца аренды (ДД.ММ.ГГГГ): ")
 
@@ -151,13 +166,23 @@ if __name__ == "__main__":
 
     road_types = choose_road_types()
 
+    # === Автогенерация даты и номера контракта ===
+    contract_number = load_contract_number()
+    contract_date = datetime.now().strftime("%d.%m.%Y")
+    save_contract_number(contract_number)
+
+    # === Сбор всех данных ===
     data = {
+        "{{CONTRACT_DATE}}": contract_date,
+        "{{CONTRACT_NUMBER}}": contract_number,
         "{{CLIENT_NAME}}": client_name,
         "{{DATE_OF_BIRTH}}": date_of_birth,
         "{{ADDRESS}}": address,
         "{{PHONE}}": phone,
         "{{EMAIL}}": email,
-        "{{PASSPORT_NUMBER}}": passport,
+        "{{PASSPORT_NUMBER}}": passport_number,
+        "{{PASSPORT_ISSUE_DATE}}": passport_issue_date,
+        "{{PASSPORT_ISSUE_BY}}": passport_issue_by,
         "{{DRIVER_LICENSE}}": license_num,
         "{{RENTAL_START}}": start_date,
         "{{RENTAL_END}}": end_date,
@@ -167,6 +192,7 @@ if __name__ == "__main__":
         # --- Машина ---
         "{{CAR_MAKE}}": selected_car["make"],
         "{{CAR_MODEL}}": selected_car["model"],
+        "{{CAR_NAME}}": f"{selected_car['make']} {selected_car['model']}",
         "{{CAR_YEAR}}": selected_car["year"],
         "{{CAR_COLOR}}": selected_car["color"],
         "{{CAR_PLATE}}": selected_car["plate"],
