@@ -1,26 +1,78 @@
 [
   {
-    "make": "Toyota",
-    "model": "Camry",
+    "make": "Mitsubishi",
+    "model": "Montero Sport",
+    "year": "2022",
+    "color": "Black",
+    "plate": "921EZ02",
+    "vin": "MMEMCY1X9NH002788"
+  },
+  {
+    "make": "Mitsubishi",
+    "model": "Montero Sport",
     "year": "2022",
     "color": "White",
-    "plate": "123ABC01",
-    "vin": "JT1234567890XYZ12"
+    "plate": "924GA02",
+    "vin": "MMEMCY1X6NH003199",
+    "nickname": "Bob"
   },
   {
-    "make": "Kia",
-    "model": "Sportage",
+    "make": "Mitsubishi",
+    "model": "Montero Sport",
+    "year": "2022",
+    "color": "White",
+    "plate": "506GA02",
+    "vin": "MMEMCY1X1NH002834",
+    "nickname": "Bruce"
+  },
+  {
+    "make": "Mitsubishi",
+    "model": "Pajero Sport",
+    "year": "2010",
+    "color": "White",
+    "plate": "L594702",
+    "vin": "MMCGYKH60BFZ02342"
+  },
+  {
+    "make": "Mitsubishi",
+    "model": "Pajero Sport",
+    "year": "2015",
+    "color": "Black",
+    "plate": "450FV02",
+    "vin": "Z8TGYKH40EM046760"
+  },
+
+  {
+    "make": "Nissan",
+    "model": "Terrano",
+    "year": "2019",
+    "color": "White",
+    "plate": "608FA02",
+    "vin": ""
+  },
+  {
+    "make": "Nissan",
+    "model": "Terrano",
     "year": "2021",
     "color": "Brown",
-    "plate": "456XYZ02",
-    "vin": "KIA9876543210ABC34"
+    "plate": "443FA02",
+    "vin": "Z8NHSNHGD54998761"
+  },
+
+  {
+    "make": "Chevrolet",
+    "model": "Niva",
+    "year": "2019",
+    "color": "",
+    "plate": "745HE02",
+    "vin": "X9L212300K0680101"
   },
   {
-    "make": "Hyundai",
-    "model": "Tucson",
-    "year": "2020",
-    "color": "Gray",
-    "plate": "789QWE03",
-    "vin": "HYU5432167890LMN56"
+    "make": "Lada",
+    "model": "Niva",
+    "year": "2019",
+    "color": "",
+    "plate": "044FG02",
+    "vin": "XWW212140K2363423"
   }
 ]
