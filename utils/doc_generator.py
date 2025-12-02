@@ -157,7 +157,65 @@ def choose_road_types():
                 idx = int(ch.strip())
                 if 1 <= idx <= len(road_options):
                     selected.append(road_options[idx - 1])
-    return ", ".join(selected) if selected else "Paved"
+    return ", ".join(selected) if selected else "Asphalt"
+
+
+# ==========================================
+# 🌍 Новый выбор дополнительных стран
+# Казахстан — всегда по умолчанию!
+# ==========================================
+
+def choose_additional_countries():
+    """
+    Менеджер выбирает только доп. страны.
+    Казахстан всегда добавляется автоматически.
+    """
+    options = {
+        1: ("Kyrgyzstan", "Кыргызстан"),
+        2: ("Uzbekistan", "Узбекистан"),
+        3: ("Tajikistan", "Таджикистан")
+    }
+
+    print("\n🌍 Выберите дополнительные страны (кроме Казахстана):")
+    for i, (en, ru) in options.items():
+        print(f"{i}. {ru}")
+
+    print("\nМожно выбрать несколько (например: 1,2) или оставить пусто")
+    choice = input("Ваш выбор: ").strip()
+
+    selected_eng = []   # Для контракта (EN)
+    selected_rus = []   # Для доверенности (RU)
+
+    if choice:
+        for ch in choice.split(","):
+            ch = ch.strip()
+            if ch.isdigit() and int(ch) in options:
+                en, ru = options[int(ch)]
+                selected_eng.append(en)
+                selected_rus.append(ru)
+
+    return selected_eng, selected_rus
+
+
+# ==========================================
+# 🌍 Формирование финальных строк для документов
+# ==========================================
+
+def format_country_strings(selected_eng, selected_rus):
+    """
+    Возвращает 2 строки:
+    1) Для {{ALLOWED_COUNTRIES}} — всегда начинается с Kazakhstan
+    2) Для {{ALLOWED_TERRITORIES}} — только русские страны (для POA & Waybill)
+    """
+
+    # Казахстан всегда первая страна
+    countries_for_contract = ["Kazakhstan"] + selected_eng
+
+    # Для доверенности / waybill Казахстан НЕ включается
+    territories_ru = ", ".join(selected_rus) if selected_rus else ""
+
+    return ", ".join(countries_for_contract), territories_ru
+
 
 
 # ==========================================
@@ -223,6 +281,16 @@ if __name__ == "__main__":
     contract_date = datetime.now().strftime("%d.%m.%Y")
     save_contract_number(contract_number)
 
+    # Выбор регионов
+    # Новый выбор стран
+    selected_eng, selected_rus = choose_additional_countries()
+
+    allowed_countries, allowed_territories_ru = format_country_strings(
+        selected_eng,
+        selected_rus
+    )
+
+
     # Данные
     data = {
         "{{CONTRACT_DATE}}": contract_date,
@@ -251,8 +319,12 @@ if __name__ == "__main__":
         "{{CAR_PLATE}}": selected_car["plate"],
         "{{CAR_VIN}}": selected_car["vin"],
 
-        "{{ALLOWED_TERRITORIES}}": "KZ, KGZ, UZ, TJ",
-        "{{TYPES_OF_ROADS}}": road_types
+        # Территории
+        "{{ALLOWED_COUNTRIES}}": allowed_countries,
+        "{{ALLOWED_TERRITORIES}}": allowed_territories_ru,
+        "{{TERRITORIES_FOR_POA}}": f"по всей территории Казахстана" + 
+                                  (f" и за её пределами: {allowed_territories_ru}" if allowed_territories_ru else "")
+
     }
 
     data.update(driver_data)
