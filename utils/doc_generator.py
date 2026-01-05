@@ -24,27 +24,31 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def replace_text_in_doc(doc, replacements):
 
     def process_paragraph(paragraph):
-        full_text = ''.join(run.text for run in paragraph.runs)
+        if not paragraph.runs:
+            return
+
+        full_text = "".join(run.text for run in paragraph.runs)
         new_text = full_text
 
         for key, value in replacements.items():
             new_text = new_text.replace(key, str(value))
 
-        if new_text != full_text and paragraph.runs:
-            first = paragraph.runs[0]
-            font_name = first.font.name
-            font_size = first.font.size
-            font_bold = first.font.bold
-            font_italic = first.font.italic
+        if new_text != full_text:
+            ref_run = paragraph.runs[0]
 
-            for r in paragraph.runs[::-1]:
+            font_name = ref_run.font.name
+            font_size = ref_run.font.size
+            font_bold = ref_run.font.bold
+            font_italic = ref_run.font.italic
+
+            for r in paragraph.runs:
                 r._element.getparent().remove(r._element)
 
-            nr = paragraph.add_run(new_text)
-            nr.font.name = font_name
-            nr.font.size = font_size
-            nr.font.bold = font_bold
-            nr.font.italic = font_italic
+            new_run = paragraph.add_run(new_text)
+            new_run.font.name = font_name
+            new_run.font.size = font_size
+            new_run.font.bold = font_bold
+            new_run.font.italic = font_italic
 
     for p in doc.paragraphs:
         process_paragraph(p)
@@ -89,6 +93,7 @@ def generate_docs(data, client_name):
 
         doc = Document(template_path)
         replace_text_in_doc(doc, data)
+
         out_path = os.path.join(OUTPUT_DIR, out_name)
         doc.save(out_path)
         print(f"✅ Создан файл: {out_path}")
@@ -113,16 +118,17 @@ def extend_date(date_str, days=3):
     return (d + timedelta(days=days)).strftime("%d.%m.%Y")
 
 # ==========================================
-# 🛣️ Типы дорог (ВОССТАНОВЛЕНО)
+# 🛣️ Типы дорог (Permission Kazakhstan)
 # ==========================================
 def choose_road_types():
     options = ["Asphalt", "Gravel", "Dirt", "Off-road"]
-    print("\nТипы дорог:")
+    print("\nTypes of Roads:")
     for i, o in enumerate(options, 1):
         print(f"{i}. {o}")
-    choice = input("Выберите (через запятую): ").strip()
 
+    choice = input("Выберите (через запятую): ").strip()
     result = []
+
     for c in choice.split(","):
         if c.strip().isdigit():
             idx = int(c.strip())
@@ -132,7 +138,7 @@ def choose_road_types():
     return ", ".join(result) if result else "Asphalt"
 
 # ==========================================
-# 🌍 Страны
+# 🌍 Доп. страны
 # ==========================================
 def choose_additional_countries():
     options = {
@@ -140,12 +146,14 @@ def choose_additional_countries():
         2: "Узбекистан",
         3: "Таджикистан"
     }
-    print("\nДоп. страны:")
+
+    print("\nДополнительные страны:")
     for i, name in options.items():
         print(f"{i}. {name}")
-    choice = input("Выбор: ").strip()
 
+    choice = input("Выбор (через запятую или Enter): ").strip()
     result = []
+
     for c in choice.split(","):
         if c.strip().isdigit() and int(c.strip()) in options:
             result.append(options[int(c.strip())])
@@ -156,6 +164,7 @@ def choose_additional_countries():
 # 🚀 MAIN
 # ==========================================
 if __name__ == "__main__":
+
     cars = load_cars()
     for i, c in enumerate(cars, 1):
         print(f"{i}. {c['make']} {c['model']} ({c['plate']})")
@@ -183,13 +192,11 @@ if __name__ == "__main__":
     # ===== ДОП ВОДИТЕЛИ =====
     drivers = {}
     for i in range(1, 4):
-        drivers.update({
-            f"{{{{DRIVER{i}_NAME}}}}": "",
-            f"{{{{DRIVER{i}_LICENSE}}}}": "",
-            f"{{{{PASSPORT{i}_NUMBER}}}}": "",
-            f"{{{{PASSPORT{i}_ISSUE_DATE}}}}": "",
-            f"{{{{PASSPORT{i}_ISSUE_BY}}}}": ""
-        })
+        drivers[f"{{{{DRIVER{i}_NAME}}}}"] = ""
+        drivers[f"{{{{DRIVER{i}_LICENSE}}}}"] = ""
+        drivers[f"{{{{PASSPORT{i}_NUMBER}}}}"] = ""
+        drivers[f"{{{{PASSPORT{i}_ISSUE_DATE}}}}"] = ""
+        drivers[f"{{{{PASSPORT{i}_ISSUE_BY}}}}"] = ""
 
     if input("Доп. водители? (да/нет): ").lower() == "да":
         count = int(input("Сколько (1–3): "))
@@ -201,15 +208,15 @@ if __name__ == "__main__":
             drivers[f"{{{{PASSPORT{i+1}_ISSUE_BY}}}}"] = input("Кем выдан: ")
 
     road_types = choose_road_types()
-    ru_countries = choose_additional_countries()
+    extra_countries = choose_additional_countries()
 
     allowed_countries = "Казахстан"
-    if ru_countries:
-        allowed_countries += ", " + ", ".join(ru_countries)
+    if extra_countries:
+        allowed_countries += ", " + ", ".join(extra_countries)
 
     outside_kz_block = (
-        f"и за ее пределами ({', '.join(ru_countries)})"
-        if ru_countries else ""
+        f"и за ее пределами ({', '.join(extra_countries)})"
+        if extra_countries else ""
     )
 
     contract_number = load_contract_number()
