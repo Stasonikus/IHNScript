@@ -19,18 +19,32 @@ COUNTER_FILE = os.path.join(DATA_DIR, "contract_counter.json")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ==========================================
-# 🔧 Замена текста в DOCX (параграфы + таблицы)
+# 🔧 Замена текста в DOCX с сохранением стиля
 # ==========================================
 def replace_text_in_doc(doc, replacements):
+
     def process_paragraph(paragraph):
         full_text = ''.join(run.text for run in paragraph.runs)
         new_text = full_text
+
         for key, value in replacements.items():
             new_text = new_text.replace(key, str(value))
-        if new_text != full_text:
-            for run in paragraph.runs[::-1]:
-                run._element.getparent().remove(run._element)
-            paragraph.add_run(new_text)
+
+        if new_text != full_text and paragraph.runs:
+            first = paragraph.runs[0]
+            font_name = first.font.name
+            font_size = first.font.size
+            font_bold = first.font.bold
+            font_italic = first.font.italic
+
+            for r in paragraph.runs[::-1]:
+                r._element.getparent().remove(r._element)
+
+            nr = paragraph.add_run(new_text)
+            nr.font.name = font_name
+            nr.font.size = font_size
+            nr.font.bold = font_bold
+            nr.font.italic = font_italic
 
     for p in doc.paragraphs:
         process_paragraph(p)
@@ -59,10 +73,8 @@ def save_contract_number(number):
 # ==========================================
 def generate_docs(data, client_name):
     for filename in os.listdir(TEMPLATE_DIR):
-        if not filename.endswith(".docx"):
+        if not filename.endswith(".docx") or filename.startswith("~$"):
             continue
-        if filename.startswith("~$"):
-            continue  # временные файлы Word
 
         template_path = os.path.join(TEMPLATE_DIR, filename)
 
@@ -101,20 +113,22 @@ def extend_date(date_str, days=3):
     return (d + timedelta(days=days)).strftime("%d.%m.%Y")
 
 # ==========================================
-# 🛣️ Типы дорог
+# 🛣️ Типы дорог (ВОССТАНОВЛЕНО)
 # ==========================================
 def choose_road_types():
-    options = ["Paved", "Gravel", "Dirt Tracks", "Off-Road", "Asphalt"]
+    options = ["Asphalt", "Gravel", "Dirt", "Off-road"]
     print("\nТипы дорог:")
     for i, o in enumerate(options, 1):
         print(f"{i}. {o}")
     choice = input("Выберите (через запятую): ").strip()
+
     result = []
     for c in choice.split(","):
         if c.strip().isdigit():
             idx = int(c.strip())
             if 1 <= idx <= len(options):
                 result.append(options[idx - 1])
+
     return ", ".join(result) if result else "Asphalt"
 
 # ==========================================
@@ -122,24 +136,21 @@ def choose_road_types():
 # ==========================================
 def choose_additional_countries():
     options = {
-        1: ("Kyrgyzstan", "Кыргызстан"),
-        2: ("Uzbekistan", "Узбекистан"),
-        3: ("Tajikistan", "Таджикистан")
+        1: "Кыргызстан",
+        2: "Узбекистан",
+        3: "Таджикистан"
     }
     print("\nДоп. страны:")
-    for i, (_, ru) in options.items():
-        print(f"{i}. {ru}")
+    for i, name in options.items():
+        print(f"{i}. {name}")
     choice = input("Выбор: ").strip()
-    eng, ru = [], []
+
+    result = []
     for c in choice.split(","):
         if c.strip().isdigit() and int(c.strip()) in options:
-            e, r = options[int(c.strip())]
-            eng.append(e)
-            ru.append(r)
-    return eng, ru
+            result.append(options[int(c.strip())])
 
-def format_countries(eng, ru):
-    return ", ".join(["Kazakhstan"] + eng), ", ".join(ru)
+    return result
 
 # ==========================================
 # 🚀 MAIN
@@ -169,21 +180,37 @@ if __name__ == "__main__":
     total = rental_rate * days
     deposit = float(input("Залог USD: "))
 
-    print("Доп. водители? (да/нет)")
-    drivers = {
-        "{{DRIVER1_NAME}}": "", "{{DRIVER1_LICENSE}}": "",
-        "{{DRIVER2_NAME}}": "", "{{DRIVER2_LICENSE}}": "",
-        "{{DRIVER3_NAME}}": "", "{{DRIVER3_LICENSE}}": ""
-    }
-    if input().lower() == "да":
+    # ===== ДОП ВОДИТЕЛИ =====
+    drivers = {}
+    for i in range(1, 4):
+        drivers.update({
+            f"{{{{DRIVER{i}_NAME}}}}": "",
+            f"{{{{DRIVER{i}_LICENSE}}}}": "",
+            f"{{{{PASSPORT{i}_NUMBER}}}}": "",
+            f"{{{{PASSPORT{i}_ISSUE_DATE}}}}": "",
+            f"{{{{PASSPORT{i}_ISSUE_BY}}}}": ""
+        })
+
+    if input("Доп. водители? (да/нет): ").lower() == "да":
         count = int(input("Сколько (1–3): "))
         for i in range(count):
             drivers[f"{{{{DRIVER{i+1}_NAME}}}}"] = input("Имя: ")
             drivers[f"{{{{DRIVER{i+1}_LICENSE}}}}"] = input("ВУ: ")
+            drivers[f"{{{{PASSPORT{i+1}_NUMBER}}}}"] = input("Паспорт №: ")
+            drivers[f"{{{{PASSPORT{i+1}_ISSUE_DATE}}}}"] = input("Дата выдачи: ")
+            drivers[f"{{{{PASSPORT{i+1}_ISSUE_BY}}}}"] = input("Кем выдан: ")
 
     road_types = choose_road_types()
-    eng, ru = choose_additional_countries()
-    allowed_countries, allowed_territories = format_countries(eng, ru)
+    ru_countries = choose_additional_countries()
+
+    allowed_countries = "Казахстан"
+    if ru_countries:
+        allowed_countries += ", " + ", ".join(ru_countries)
+
+    outside_kz_block = (
+        f"и за ее пределами ({', '.join(ru_countries)})"
+        if ru_countries else ""
+    )
 
     contract_number = load_contract_number()
     save_contract_number(contract_number)
@@ -200,13 +227,18 @@ if __name__ == "__main__":
         "{{PASSPORT_ISSUE_DATE}}": passport_issue_date,
         "{{PASSPORT_ISSUE_BY}}": passport_issue_by,
         "{{DRIVER_LICENSE}}": license_num,
+
         "{{RENTAL_START}}": start_date,
         "{{RENTAL_END}}": end_date,
         "{{RENTAL_END_EXTENDED}}": extend_date(end_date),
+
         "{{RENTAL_RATE}}": f"{rental_rate:.2f}",
         "{{TOTAL_AMOUNT}}": f"{total:.2f}",
         "{{SECURITY_DEPOSIT}}": f"{deposit:.2f}",
+
+        "{{ALLOWED_COUNTRIES}}": allowed_countries,
         "{{TYPES_OF_ROADS}}": road_types,
+        "{{OUTSIDE_KZ_BLOCK}}": outside_kz_block,
 
         "{{CAR_MAKE}}": selected_car["make"],
         "{{CAR_MODEL}}": selected_car["model"],
@@ -214,10 +246,7 @@ if __name__ == "__main__":
         "{{CAR_YEAR}}": selected_car["year"],
         "{{CAR_COLOR}}": selected_car["color"],
         "{{CAR_PLATE}}": selected_car["plate"],
-        "{{CAR_VIN}}": selected_car["vin"],
-
-        "{{ALLOWED_COUNTRIES}}": allowed_countries,
-        "{{ALLOWED_TERRITORIES}}": allowed_territories,
+        "{{CAR_VIN}}": selected_car["vin"]
     }
 
     data.update(drivers)
