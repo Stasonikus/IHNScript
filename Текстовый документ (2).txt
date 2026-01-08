@@ -24,12 +24,12 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ==========================================
 def input_date(prompt):
     while True:
-        value = input(f"{prompt} (ДД.ММ.ГГГГ, пример 05.01.2026): ").strip()
+        value = input(f"{prompt} (формат ДД.ММ.ГГГГ): ").strip()
         try:
             datetime.strptime(value, "%d.%m.%Y")
             return value
         except ValueError:
-            print("❌ Неверный формат даты. Используйте ДД.ММ.ГГГГ")
+            print("❌ Неверный формат даты. Пример: 05.01.2026")
 
 def input_float(prompt):
     while True:
@@ -67,6 +67,7 @@ def replace_text_in_doc(doc, replacements):
             is_driver_block = any(k in full_text for k in DRIVER_BLOCK_KEYS)
 
             ref_run = paragraph.runs[0]
+
             font_name = ref_run.font.name
             font_size = ref_run.font.size
             font_bold = ref_run.font.bold
