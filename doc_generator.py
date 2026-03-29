@@ -1,18 +1,25 @@
 import os
+import sys
 import json
 from docx import Document
 from docx.shared import Pt
 from datetime import datetime, timedelta
 
 # ==========================================
-# 📁 Пути проекта
+# 📁 Project paths (works for .py and .exe)
 # ==========================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(BASE_DIR)
 
-TEMPLATE_DIR = os.path.join(PROJECT_DIR, "templates")
-DATA_DIR = os.path.join(PROJECT_DIR, "data")
-OUTPUT_DIR = os.path.join(PROJECT_DIR, "output")
+def get_base_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    else:
+        return os.path.dirname(os.path.abspath(__file__))
+
+BASE_DIR = get_base_dir()
+
+TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
+DATA_DIR = os.path.join(BASE_DIR, "data")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 
 CARS_FILE = os.path.join(DATA_DIR, "cars.json")
 COUNTER_FILE = os.path.join(DATA_DIR, "contract_counter.json")
@@ -20,16 +27,16 @@ COUNTER_FILE = os.path.join(DATA_DIR, "contract_counter.json")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ==========================================
-# 🔧 Валидация ввода
+# 🔧 Input validation
 # ==========================================
 def input_date(prompt):
     while True:
-        value = input(f"{prompt} (ДД.ММ.ГГГГ, пример 05.01.2026): ").strip()
+        value = input(f"{prompt} (DD.MM.YYYY, example 05.01.2026): ").strip()
         try:
             datetime.strptime(value, "%d.%m.%Y")
             return value
         except ValueError:
-            print("❌ Неверный формат даты. Используйте ДД.ММ.ГГГГ")
+            print("❌ Wrong date format. Use DD.MM.YYYY (example: 05.01.2026)")
 
 def input_float(prompt):
     while True:
@@ -40,10 +47,10 @@ def input_float(prompt):
                 raise ValueError
             return number
         except ValueError:
-            print("❌ Введите корректное положительное число")
+            print("❌ Enter a valid positive number")
 
 # ==========================================
-# 🔧 Замена текста в DOCX с сохранением стиля
+# 🔧 Replace text in DOCX (keep styles)
 # ==========================================
 def replace_text_in_doc(doc, replacements):
 
@@ -97,7 +104,7 @@ def replace_text_in_doc(doc, replacements):
                     process_paragraph(p)
 
 # ==========================================
-# 🔢 Контрактный номер
+# 🔢 Contract number
 # ==========================================
 def load_contract_number():
     if not os.path.exists(COUNTER_FILE):
@@ -110,7 +117,7 @@ def save_contract_number(number):
         json.dump({"last_number": number}, f, ensure_ascii=False, indent=4)
 
 # ==========================================
-# 📝 Генерация документов
+# 📝 Document generation
 # ==========================================
 def generate_docs(base_data, client_name, end_date):
 
@@ -141,21 +148,46 @@ def generate_docs(base_data, client_name, end_date):
 
         out_path = os.path.join(OUTPUT_DIR, out_name)
         doc.save(out_path)
-        print(f"✅ Создан файл: {out_path}")
+        print(f"✅ File created: {out_path}")
 
 # ==========================================
-# 🚗 Загрузка авто
+# 🚗 Load cars
 # ==========================================
 def load_cars():
     with open(CARS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 # ==========================================
-# 📆 Даты
+# 🚗 Choose multiple cars
+# ==========================================
+def choose_cars(cars):
+    print("\nAvailable cars:")
+    for i, c in enumerate(cars, 1):
+        print(f"{i}. {c['make']} {c['model']} ({c['plate']})")
+
+    while True:
+        choice = input("Select car numbers (example: 1 or 1,3): ").strip()
+        selected = []
+
+        for c in choice.split(","):
+            if c.strip().isdigit():
+                idx = int(c.strip())
+                if 1 <= idx <= len(cars):
+                    selected.append(cars[idx - 1])
+
+        if selected:
+            return selected
+        else:
+            print("❌ Invalid selection. Try again.")
+
+# ==========================================
+# 📆 Dates
 # ==========================================
 def calculate_days(start, end):
     d1 = datetime.strptime(start, "%d.%m.%Y")
     d2 = datetime.strptime(end, "%d.%m.%Y")
+    if d2 < d1:
+        raise ValueError("End date cannot be earlier than start date")
     return (d2 - d1).days + 1
 
 def extend_date(date_str, days=3):
@@ -163,15 +195,15 @@ def extend_date(date_str, days=3):
     return (d + timedelta(days=days)).strftime("%d.%m.%Y")
 
 # ==========================================
-# 🛣️ Типы дорог
+# 🛣️ Road types
 # ==========================================
 def choose_road_types():
     options = ["Asphalt", "Gravel", "Dirt", "Off-road"]
-    print("\nTypes of Roads:")
+    print("\nTypes of roads:")
     for i, o in enumerate(options, 1):
         print(f"{i}. {o}")
 
-    choice = input("Выберите (через запятую): ").strip()
+    choice = input("Choose numbers (comma separated, example: 1,3): ").strip()
     result = []
 
     for c in choice.split(","):
@@ -183,20 +215,20 @@ def choose_road_types():
     return ", ".join(result) if result else "Asphalt"
 
 # ==========================================
-# 🌍 Доп. страны
+# 🌍 Additional countries
 # ==========================================
 def choose_additional_countries():
     options = {
-        1: "Кыргызстан",
-        2: "Узбекистан",
-        3: "Таджикистан"
+        1: "Kyrgyzstan",
+        2: "Uzbekistan",
+        3: "Tajikistan"
     }
 
-    print("\nДополнительные страны:")
+    print("\nAdditional countries:")
     for i, name in options.items():
         print(f"{i}. {name}")
 
-    choice = input("Выбор (через запятую или Enter): ").strip()
+    choice = input("Choose numbers (comma separated) or press Enter to skip: ").strip()
     result = []
 
     for c in choice.split(","):
@@ -211,30 +243,34 @@ def choose_additional_countries():
 if __name__ == "__main__":
 
     cars = load_cars()
-    for i, c in enumerate(cars, 1):
-        print(f"{i}. {c['make']} {c['model']} ({c['plate']})")
-    selected_car = cars[int(input("Выбор авто: ")) - 1]
+    selected_cars = choose_cars(cars)
 
-    client_name = input("ФИО клиента: ")
-    date_of_birth = input_date("Дата рождения")
-    address = input("Адрес: ")
-    phone = input("Телефон: ")
-    email = input("Email: ")
+    client_name = input("Client full name: ")
+    date_of_birth = input_date("Date of birth")
+    address = input("Home address: ")
+    phone = input("Phone number: ")
+    email = input("Email address: ")
 
-    passport_number = input("Паспорт №: ")
-    passport_issue_date = input_date("Дата выдачи паспорта")
-    passport_issue_by = input("Кем выдан: ")
-    license_num = input("ВУ №: ")
+    passport_number = input("Passport / ID number: ")
+    passport_issue_date = input_date("Passport issue date")
+    passport_issue_by = input("Issued by (authority): ")
+    license_num = input("Driver license number: ")
 
-    start_date = input_date("Начало аренды")
-    end_date = input_date("Конец аренды")
+    start_date = input_date("Rental start date")
+    end_date = input_date("Rental end date")
 
-    rental_rate = input_float("Цена за сутки USD: ")
-    days = calculate_days(start_date, end_date)
+    rental_rate = input_float("Daily rental price (USD): ")
+    
+    try:
+        days = calculate_days(start_date, end_date)
+    except ValueError as e:
+        print(f"❌ {e}")
+        exit()
+
     total = rental_rate * days
-    deposit = input_float("Залог USD: ")
+    deposit = input_float("Security deposit (USD): ")
 
-    # ===== ДОП ВОДИТЕЛИ =====
+    # ===== ADDITIONAL DRIVERS =====
     driver_blocks = {}
     driver_names = {}
     driver_licenses = {}
@@ -244,14 +280,14 @@ if __name__ == "__main__":
         driver_names[f"{{{{DRIVER{i}_NAME}}}}"] = ""
         driver_licenses[f"{{{{DRIVER{i}_LICENSE}}}}"] = ""
 
-    if input("Доп. водители? (да/нет): ").lower() == "да":
-        count = int(input("Сколько (1–3): "))
+    if input("Add additional drivers? (yes/no): ").lower() == "yes":
+        count = int(input("How many drivers (1–3): "))
         for i in range(count):
-            name = input("Имя: ")
-            passport = input("Паспорт №: ")
-            issue_date = input_date("Дата выдачи паспорта")
-            issue_by = input("Кем выдан: ")
-            license_d = input("ВУ №: ")
+            name = input("Driver full name: ")
+            passport = input("Passport / ID number: ")
+            issue_date = input_date("Passport issue date")
+            issue_by = input("Issued by: ")
+            license_d = input("Driver license number: ")
 
             driver_names[f"{{{{DRIVER{i+1}_NAME}}}}"] = name
             driver_licenses[f"{{{{DRIVER{i+1}_LICENSE}}}}"] = f"№{license_d}"
@@ -264,52 +300,58 @@ if __name__ == "__main__":
     road_types = choose_road_types()
     extra_countries = choose_additional_countries()
 
-    allowed_countries = "Казахстан"
+    allowed_countries = "Kazakhstan"
     if extra_countries:
         allowed_countries += ", " + ", ".join(extra_countries)
 
     outside_kz_block = (
-        f"и за ее пределами ({', '.join(extra_countries)})"
+        f"and outside Kazakhstan ({', '.join(extra_countries)})"
         if extra_countries else ""
     )
 
     contract_number = load_contract_number()
     save_contract_number(contract_number)
 
-    base_data = {
-        "{{CONTRACT_DATE}}": datetime.now().strftime("%d.%m.%Y"),
-        "{{CONTRACT_NUMBER}}": contract_number,
-        "{{CLIENT_NAME}}": client_name,
-        "{{DATE_OF_BIRTH}}": date_of_birth,
-        "{{ADDRESS}}": address,
-        "{{PHONE}}": phone,
-        "{{EMAIL}}": email,
-        "{{PASSPORT_NUMBER}}": passport_number,
-        "{{PASSPORT_ISSUE_DATE}}": passport_issue_date,
-        "{{PASSPORT_ISSUE_BY}}": passport_issue_by,
-        "{{DRIVER_LICENSE}}": license_num,
+    # 🔁 ГЕНЕРАЦИЯ ДЛЯ КАЖДОЙ МАШИНЫ
+    for car in selected_cars:
 
-        "{{RENTAL_START}}": start_date,
+        base_data = {
+            "{{CONTRACT_DATE}}": datetime.now().strftime("%d.%m.%Y"),
+            "{{CONTRACT_NUMBER}}": contract_number,
+            "{{CLIENT_NAME}}": client_name,
+            "{{DATE_OF_BIRTH}}": date_of_birth,
+            "{{ADDRESS}}": address,
+            "{{PHONE}}": phone,
+            "{{EMAIL}}": email,
+            "{{PASSPORT_NUMBER}}": passport_number,
+            "{{PASSPORT_ISSUE_DATE}}": passport_issue_date,
+            "{{PASSPORT_ISSUE_BY}}": passport_issue_by,
+            "{{DRIVER_LICENSE}}": license_num,
 
-        "{{RENTAL_RATE}}": f"{rental_rate:.2f}",
-        "{{TOTAL_AMOUNT}}": f"{total:.2f}",
-        "{{SECURITY_DEPOSIT}}": f"{deposit:.2f}",
+            "{{RENTAL_START}}": start_date,
 
-        "{{ALLOWED_COUNTRIES}}": allowed_countries,
-        "{{TYPES_OF_ROADS}}": road_types,
-        "{{OUTSIDE_KZ_BLOCK}}": outside_kz_block,
+            "{{RENTAL_RATE}}": f"{rental_rate:.2f}",
+            "{{TOTAL_AMOUNT}}": f"{total:.2f}",
+            "{{SECURITY_DEPOSIT}}": f"{deposit:.2f}",
 
-        "{{CAR_MAKE}}": selected_car["make"],
-        "{{CAR_MODEL}}": selected_car["model"],
-        "{{CAR_NAME}}": f"{selected_car['make']} {selected_car['model']}",
-        "{{CAR_YEAR}}": selected_car["year"],
-        "{{CAR_COLOR}}": selected_car["color"],
-        "{{CAR_PLATE}}": selected_car["plate"],
-        "{{CAR_VIN}}": selected_car["vin"]
-    }
+            "{{ALLOWED_COUNTRIES}}": allowed_countries,
+            "{{TYPES_OF_ROADS}}": road_types,
+            "{{OUTSIDE_KZ_BLOCK}}": outside_kz_block,
 
-    base_data.update(driver_blocks)
-    base_data.update(driver_names)
-    base_data.update(driver_licenses)
+            "{{CAR_MAKE}}": car["make"],
+            "{{CAR_MODEL}}": car["model"],
+            "{{CAR_NAME}}": f"{car['make']} {car['model']}",
+            "{{CAR_YEAR}}": car["year"],
+            "{{CAR_COLOR}}": car["color"],
+            "{{CAR_PLATE}}": car["plate"],
+            "{{CAR_VIN}}": car["vin"]
+        }
 
-    generate_docs(base_data, client_name.replace(" ", "_"), end_date)
+        base_data.update(driver_blocks)
+        base_data.update(driver_names)
+        base_data.update(driver_licenses)
+
+        generate_docs(base_data, f"{client_name.replace(' ', '_')}_{car['plate']}", end_date)
+
+    print("\nAll documents are created successfully.")
+    input("Press Enter to exit...")
