@@ -219,9 +219,9 @@ def choose_road_types():
 # ==========================================
 def choose_additional_countries():
     options = {
-        1: "Kyrgyzstan",
-        2: "Uzbekistan",
-        3: "Tajikistan"
+        1: "Кыргызстан",
+        2: "Узбекистан",
+        3: "Таджикистан"
     }
 
     print("\nAdditional countries:")
@@ -300,12 +300,12 @@ if __name__ == "__main__":
     road_types = choose_road_types()
     extra_countries = choose_additional_countries()
 
-    allowed_countries = "Kazakhstan"
+    allowed_countries = "Казахстан"
     if extra_countries:
         allowed_countries += ", " + ", ".join(extra_countries)
 
     outside_kz_block = (
-        f"and outside Kazakhstan ({', '.join(extra_countries)})"
+        f"и за ее пределами ({', '.join(extra_countries)})"
         if extra_countries else ""
     )
 

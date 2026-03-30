@@ -1,4 +1,4 @@
-('E:\\training\\Python\\IHNSCRIPT\\build\\IHN_Document_Generator\\PYZ-00.pyz',
+('E:\\training\\Python\\IHNscript\\build\\IHN_Document_Generator\\PYZ-00.pyz',
  [('__future__', 'E:\\Python\\Lib\\__future__.py', 'PYMODULE'),
   ('_aix_support', 'E:\\Python\\Lib\\_aix_support.py', 'PYMODULE'),
   ('_colorize', 'E:\\Python\\Lib\\_colorize.py', 'PYMODULE'),
